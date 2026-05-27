@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>五月拼好饭 AI 视频小批量测试</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #ffffff 0%, #e8d8ff 35%, #f5f0ff 55%, #ffffa0 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+      color: #2d2040;
+    }
+
+    header {
+      padding: 24px 40px 16px;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      background: linear-gradient(90deg, #9b6dff, #c084fc, #facc15);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      margin-top: 4px;
+      font-size: 0.85rem;
+      color: #8b7aaa;
+    }
+
+    /* ── Brief 区 ── */
+    .brief {
+      max-width: 1000px;
+      margin: 0 auto 20px;
+      padding: 0 40px;
+    }
+
+    .brief-card {
+      background: rgba(255,255,255,0.6);
+      border: 1px solid rgba(200,170,255,0.35);
+      border-radius: 16px;
+      padding: 14px 24px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(155,109,255,0.1);
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+    }
+
+    .brief-seg {
+      flex: 1;
+      padding: 0 20px;
+      border-right: 1px solid rgba(200,170,255,0.25);
+    }
+
+    .brief-seg:first-child { padding-left: 0; }
+    .brief-seg:last-child  { padding-right: 0; border-right: none; }
+
+    .brief-col-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #b09ad0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .brief-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brief-item {
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #3d2d5a;
+    }
+
+    .brief-item b { color: #2d2040; }
+
+    .brief-kw {
+      color: #e05a5a;
+      font-weight: 700;
+    }
+
+    .brief-divider-v {
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(155,109,255,0.25), transparent);
+      margin: 0;
+      grid-row: 1 / 3;
+    }
+
+    .brief-divider-h {
+      height: 1px;
+      background: linear-gradient(90deg, rgba(155,109,255,0.2), transparent);
+      margin: 16px 0;
+      grid-column: 1 / -1;
+    }
+
+    .brief-audience {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brief-audience-row {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #3d2d5a;
+    }
+
+    .role-pill {
+      flex-shrink: 0;
+      display: inline-block;
+      padding: 1px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    /* ── 筛选标签 ── */
+    .filter-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 40px 32px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 6px 20px;
+      border-radius: 999px;
+      border: 1.5px solid #c4a8ff;
+      background: rgba(255,255,255,0.6);
+      color: #7c5cbf;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      backdrop-filter: blur(6px);
+    }
+
+    .filter-btn:hover,
+    .filter-btn.active {
+      background: linear-gradient(90deg, #c084fc, #facc15);
+      border-color: transparent;
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 4px 14px rgba(192,132,252,0.4);
+    }
+
+    /* ── 网格 ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 20px;
+      padding: 0 40px 60px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1200px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+    @media (max-width: 960px)  { .grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 720px)  { .grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 480px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+    /* ── 卡片 ── */
+    .card {
+      background: rgba(255,255,255,0.55);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(155,109,255,0.12);
+      border: 1px solid rgba(200,170,255,0.3);
+      backdrop-filter: blur(10px);
+      transition: transform 0.25s, box-shadow 0.25s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 36px rgba(155,109,255,0.25);
+    }
+
+    /* ── 视频容器 ── */
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9/16;
+      background: #1a1030;
+      overflow: hidden;
+    }
+
+    /* 懒加载占位骨架 */
+    .video-skeleton {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(110deg, #1a1030 30%, #2a1a50 50%, #1a1030 70%);
+      background-size: 200% 100%;
+      animation: shimmer 1.6s infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .video-wrap.loaded .video-skeleton { display: none; }
+
+    .video-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* 封面遮罩（未播放时显示） */
+    .cover-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%);
+      transition: opacity 0.3s;
+    }
+
+    .card.playing .cover-overlay {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .play-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      transition: transform 0.2s;
+    }
+
+    .play-btn svg {
+      width: 22px;
+      height: 22px;
+      fill: #7c3aed;
+      margin-left: 3px;
+    }
+
+    .card:hover .play-btn {
+      transform: scale(1.12);
+    }
+
+    /* ── 卡片信息 ── */
+    .card-info {
+      padding: 14px 16px 16px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #2d2040;
+      margin-bottom: 8px;
+    }
+
+    .card-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .tag-白领 { background: #ede9fe; color: #7c3aed; }
+    .tag-蓝领 { background: #dbeafe; color: #1d4ed8; }
+    .tag-学生 { background: #fef9c3; color: #a16207; }
+    .tag-其他 { background: #f3f4f6; color: #6b7280; }
+
+    /* ── 模态播放器 ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,5,25,0.82);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-inner {
+      position: relative;
+      width: min(380px, 90vw);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+
+    .modal-inner video {
+      width: 100%;
+      display: block;
+      aspect-ratio: 9/16;
+      background: #000;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1;
+      transition: background 0.2s;
+      z-index: 10;
+    }
+
+    .modal-close:hover { background: rgba(255,255,255,0.32); }
+
+    .modal-title {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 40px 16px 16px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    /* ── 统计条 ── */
+    .stats-bar {
+      text-align: center;
+      padding: 0 40px 20px;
+      font-size: 0.82rem;
+      color: #9d8bbf;
+    }
+
+    .stats-bar span {
+      margin: 0 8px;
+    }
+
+    /* ── 隐藏 ── */
+    .card.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>五月拼好饭 AI 视频小批量测试</h1>
+  <p>共 46 支视频 · 点击封面播放</p>
+</header>
+
+<div class="brief">
+  <div class="brief-card">
+
+    <!-- 模块一：品牌植入 -->
+    <div class="brief-seg">
+      <div class="brief-col-title">品牌植入</div>
+      <div class="brief-block">
+        <div class="brief-item">全片必提一次「<span class="brief-kw">美团拼好饭</span>」</div>
+        <div class="brief-item">其余统一用「拼好饭」</div>
+        <div class="brief-item"><span class="brief-kw">禁止出现「外卖」</span></div>
+        <div class="brief-item">餐食画面全量植入，强食欲感</div>
+      </div>
+    </div>
+
+    <!-- 模块二：口播公式 -->
+    <div class="brief-seg">
+      <div class="brief-col-title">口播公式</div>
+      <div class="brief-block">
+        <div class="brief-item">基础利益点 ＋ 人群利益点 ＋ 引导路径</div>
+      </div>
+    </div>
+
+    <!-- 模块三：基础利益点 -->
+    <div class="brief-seg">
+      <div class="brief-col-title">基础利益点（二选一）</div>
+      <div class="brief-block">
+        <div class="brief-item"><span class="brief-kw">① 吃得好，花得少</span></div>
+        <div class="brief-item"><span class="brief-kw">② 闭眼选，超多宝藏小店放心点</span></div>
+      </div>
+    </div>
+
+    <!-- 模块四：分人群利益点 -->
+    <div class="brief-seg">
+      <div class="brief-col-title">分人群利益点</div>
+      <div class="brief-audience">
+        <div class="brief-audience-row">
+          <span class="role-pill tag-白领">白领</span>
+          <span><span class="brief-kw">实惠×省心</span>：一份不到 20 块</span>
+        </div>
+        <div class="brief-audience-row">
+          <span class="role-pill tag-蓝领">蓝领</span>
+          <span><span class="brief-kw">实惠×管饱</span>：不到 15 块这么大一份</span>
+        </div>
+        <div class="brief-audience-row">
+          <span class="role-pill tag-学生">学生</span>
+          <span><span class="brief-kw">实惠×超值</span>：一份才不到 15 块</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" data-filter="all">全部 46</button>
+  <button class="filter-btn" data-filter="白领">白领</button>
+  <button class="filter-btn" data-filter="蓝领">蓝领</button>
+  <button class="filter-btn" data-filter="学生">学生</button>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <span>显示全部 46 支</span>
+</div>
+
+<div class="grid" id="videoGrid"></div>
+
+<!-- 模态播放器 -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal-inner">
+    <button class="modal-close" id="modalClose">✕</button>
+    <video id="modalVideo" controls playsinline></video>
+    <div class="modal-title" id="modalTitle"></div>
+  </div>
+</div>
+
+<script>
+// 精选视频标题列表（按顺序）
+const featuredTitles = [
+  "名画蓝领拼好饭",
+  "工地后羿一口回魂",
+  "法老学长天降大餐",
+  "期末修罗场拼好饭",
+  "消失的加餐钱",
+  "陨石难挡月底大餐",
+  "魔法学院午餐避坑指南",
+  "魔法白领的秘密午餐",
+  "深夜宿舍天降硬菜",
+  "神仙打工人的拼饭日常",
+  "名画工地干饭记",
+  "职场法老的天降神饭",
+];
+
+const videos = [
+  { role: "白领", title: "职场午餐大救星", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_182140_subtitle_20260525_181922_3.mp4" },
+  { role: "蓝领", title: "名画工地干饭记", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_182324_subtitle_20260525_182141_4.mp4" },
+  { role: "白领", title: "职场法老的天降神饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_182550_subtitle_20260525_182446_6.mp4" },
+  { role: "蓝领", title: "工地蓝领猫硬核干饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_182751_subtitle_20260525_182706_13.mp4" },
+  { role: "白领", title: "功夫狐狸一招破局", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_182913_subtitle_20260525_182751_15.mp4" },
+  { role: "蓝领", title: "水墨力工干饭自由", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174719_subtitle_20260526_174638_19.mp4" },
+  { role: "白领", title: "丧尸围楼吃上红烧肉", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_183331_subtitle_20260525_183210_21.mp4" },
+  { role: "蓝领", title: "末日防线拼好饭回血", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_183451_subtitle_20260525_183332_22.mp4" },
+  { role: "白领", title: "神仙打工人的拼饭日常", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174841_subtitle_20260526_174719_27.mp4" },
+  { role: "蓝领", title: "天界打工人干饭图鉴", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175051_subtitle_20260526_174842_28.mp4" },
+  { role: "白领", title: "神仙打工人干饭Vlog", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175239_subtitle_20260526_175052_30.mp4" },
+  { role: "学生", title: "宿舍诸神拼好饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175543_subtitle_20260526_175356_32.mp4" },
+  { role: "白领", title: "陨石也挡不住我吃肉", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175638_subtitle_20260526_175544_33.mp4" },
+  { role: "蓝领", title: "硬汉老陈末日干饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_184529_subtitle_20260525_184426_34.mp4" },
+  { role: "白领", title: "同事怀疑我家里有矿", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175739_subtitle_20260526_175638_36.mp4" },
+  { role: "蓝领", title: "工地肉饭馋哭工头", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175827_subtitle_20260526_175739_37.mp4" },
+  { role: "学生", title: "深夜宿舍天降硬菜", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175921_subtitle_20260526_175828_38.mp4" },
+  { role: "白领", title: "名画职场午餐救赎", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180040_subtitle_20260526_175921_39.mp4" },
+  { role: "蓝领", title: "名画蓝领拼好饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180205_subtitle_20260526_180041_40.mp4" },
+  { role: "蓝领", title: "蓝领石墩变身肌肉男", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180256_subtitle_20260526_180206_43.mp4" },
+  { role: "白领", title: "办公室午餐降维打击", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180404_subtitle_20260526_180256_45.mp4" },
+  { role: "蓝领", title: "异次元硬核加餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180523_subtitle_20260526_180405_46.mp4" },
+  { role: "学生", title: "宿舍抗饿大作战", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180624_subtitle_20260526_180524_47.mp4" },
+  { role: "白领", title: "打工猫靠好饭续命", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_185950_subtitle_20260525_185833_48.mp4" },
+  { role: "白领", title: "办公桌奇幻午餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180841_subtitle_20260526_180727_51.mp4" },
+  { role: "白领", title: "职场午餐自救指南", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180945_subtitle_20260526_180842_54.mp4" },
+  { role: "蓝领", title: "工地老李这顿吃饱了", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181057_subtitle_20260526_180945_55.mp4" },
+  { role: "学生", title: "拯救月底干饭人", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181147_subtitle_20260526_181058_56.mp4" },
+  { role: "蓝领", title: "工地四荤一素的反转", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181258_subtitle_20260526_181148_58.mp4" },
+  { role: "白领", title: "经理发飙的离谱真相", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181421_subtitle_20260526_181258_60.mp4" },
+  { role: "白领", title: "打工狗的午饭哲学", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181535_subtitle_20260526_181456_63.mp4" },
+  { role: "白领", title: "魔法白领的秘密午餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181627_subtitle_20260526_181536_67.mp4" },
+  { role: "白领", title: "985白领午餐崩溃", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260525_191142_subtitle_20260525_191102_70.mp4" },
+  { role: "蓝领", title: "蓝领战神护妻记", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181841_subtitle_20260526_181703_74.mp4" },
+  { role: "白领", title: "被误解的晚餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181935_subtitle_20260526_181842_76.mp4" },
+  { role: "蓝领", title: "消失的加餐钱", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_182051_subtitle_20260526_181936_77.mp4" },
+  { role: "白领", title: "水墨打工人拒绝凑单", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174637_subtitle_20260526_174544_18.mp4" },
+  { role: "蓝领", title: "工地后羿一口回魂", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_175355_subtitle_20260526_175240_31.mp4" },
+  { role: "学生", title: "期末修罗场拼好饭", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174331_subtitle_20260526_174254_2.mp4" },
+  { role: "学生", title: "法老学长天降大餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174438_subtitle_20260526_174331_8.mp4" },
+  { role: "白领", title: "打工神像的真香午餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174511_subtitle_20260526_174439_9.mp4" },
+  { role: "学生", title: "毛毡女神深夜大餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_174544_subtitle_20260526_174511_11.mp4" },
+  { role: "学生", title: "月底宿舍吃肉记", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_180726_subtitle_20260526_180625_50.mp4" },
+  { role: "蓝领", title: "师父怒批小工竟秒打脸", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181456_subtitle_20260526_181421_61.mp4" },
+  { role: "学生", title: "魔法学院午餐避坑指南", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_181703_subtitle_20260526_181627_69.mp4" },
+  { role: "学生", title: "陨石难挡月底大餐", url: "http://s3plus-bj02.sankuai.com/s3plus-common/20260526_191520_subtitle_20260526_191433_35.mp4" },
+];
+
+// 统计各分类数量
+const counts = { all: videos.length };
+videos.forEach(v => { counts[v.role] = (counts[v.role] || 0) + 1; });
+
+// 更新筛选按钮文字
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  const f = btn.dataset.filter;
+  const label = f === 'all' ? '全部' : f;
+  const n = counts[f] || 0;
+  btn.textContent = `${label} ${f === 'all' ? videos.length : n}`;
+});
+
+// 创建卡片 DOM
+function makeCard(v, i) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.role = v.role;
+  card.dataset.title = v.title;
+  card.innerHTML = `
+    <div class="video-wrap">
+      <div class="video-skeleton"></div>
+      <video
+        data-src="${v.url}"
+        preload="none"
+        playsinline
+        muted
+        data-index="${i}"
+      ></video>
+      <div class="cover-overlay">
+        <div class="play-btn">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="card-info">
+      <div class="card-title">${v.title}</div>
+      <span class="card-tag tag-${v.role}">${v.role}</span>
+    </div>
+  `;
+  card.querySelector('.video-wrap').addEventListener('click', () => openModal(v.url, v.title));
+  return card;
+}
+
+// 按精选顺序 + 其余视频的顺序合并渲染
+const featuredSet = new Set(featuredTitles);
+const grid = document.getElementById('videoGrid');
+
+// 先渲染精选（按指定顺序）
+featuredTitles.forEach((title, i) => {
+  const v = videos.find(x => x.title === title);
+  if (!v) return;
+  grid.appendChild(makeCard(v, 1000 + i));
+});
+
+// 再渲染其余视频（原始顺序，跳过已在精选中的）
+videos.forEach((v, i) => {
+  if (featuredSet.has(v.title)) return;
+  grid.appendChild(makeCard(v, i));
+});
+
+// ── 懒加载：IntersectionObserver ──
+const lazyObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (!entry.isIntersecting) return;
+    const wrap = entry.target;
+    const video = wrap.querySelector('video');
+    if (video && video.dataset.src && !video.src) {
+      video.src = video.dataset.src;
+      video.preload = 'metadata';
+      video.load();
+
+      // metadata 就绪后 seek 到 20% 处，取更有内容的封面帧
+      video.addEventListener('loadedmetadata', () => {
+        video.currentTime = video.duration * 0.2;
+      }, { once: true });
+
+      // seek 完成后显示封面，隐藏骨架
+      video.addEventListener('seeked', () => {
+        wrap.classList.add('loaded');
+      }, { once: true });
+
+      // 超时兜底：5s 后无论如何隐藏骨架
+      setTimeout(() => wrap.classList.add('loaded'), 5000);
+    }
+    lazyObserver.unobserve(wrap);
+  });
+}, { rootMargin: '200px' });
+
+document.querySelectorAll('.video-wrap').forEach(wrap => lazyObserver.observe(wrap));
+
+// 筛选后重新观察新出现的卡片
+function reobserveLazy() {
+  document.querySelectorAll('.video-wrap').forEach(wrap => {
+    const video = wrap.querySelector('video');
+    if (video && !video.src) lazyObserver.observe(wrap);
+  });
+}
+
+// 模态播放器
+const backdrop = document.getElementById('modalBackdrop');
+const modalVideo = document.getElementById('modalVideo');
+const modalTitle = document.getElementById('modalTitle');
+const modalClose = document.getElementById('modalClose');
+
+function openModal(url, title) {
+  modalVideo.src = url;
+  modalTitle.textContent = title;
+  backdrop.classList.add('open');
+  modalVideo.play();
+}
+
+function closeModal() {
+  backdrop.classList.remove('open');
+  modalVideo.pause();
+  modalVideo.src = '';
+}
+
+modalClose.addEventListener('click', closeModal);
+backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// 筛选
+const statsBar = document.getElementById('statsBar');
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    let shown = 0;
+    document.querySelectorAll('.card').forEach(card => {
+      const match = filter === 'all' || card.dataset.role === filter;
+      card.classList.toggle('hidden', !match);
+      if (match) shown++;
+    });
+    const label = filter === 'all' ? '全部' : filter === '其他' ? '未分类' : filter;
+    statsBar.innerHTML = `<span>显示 ${label} · 共 ${shown} 支</span>`;
+    // 筛选后触发懒加载
+    setTimeout(reobserveLazy, 50);
+  });
+});
+</script>
+</body>
+</html>
