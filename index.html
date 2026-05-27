@@ -578,41 +578,90 @@ videos.forEach((v, i) => {
   grid.appendChild(makeCard(v, i));
 });
 
-// ── 懒加载：IntersectionObserver ──
+// ── 封面取帧：用隐藏 video + Canvas 生成封面 img ──
+function grabFrame(url, callback) {
+  const v = document.createElement('video');
+  v.crossOrigin = 'anonymous';
+  v.muted = true;
+  v.preload = 'metadata';
+  v.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;';
+  document.body.appendChild(v);
+
+  let done = false;
+  function finish(dataUrl) {
+    if (done) return;
+    done = true;
+    document.body.removeChild(v);
+    callback(dataUrl);
+  }
+
+  v.addEventListener('seeked', () => {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = v.videoWidth || 360;
+      canvas.height = v.videoHeight || 640;
+      canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
+      finish(canvas.toDataURL('image/jpeg', 0.85));
+    } catch(e) {
+      finish(null);
+    }
+  }, { once: true });
+
+  v.addEventListener('loadedmetadata', () => {
+    v.currentTime = Math.max(v.duration * 0.2, 0.5);
+  }, { once: true });
+
+  v.addEventListener('error', () => finish(null), { once: true });
+
+  // 超时兜底 8s
+  setTimeout(() => finish(null), 8000);
+
+  v.src = url;
+  v.load();
+}
+
+// ── 为某个 wrap 加载封面 ──
+function loadCover(wrap) {
+  const video = wrap.querySelector('video');
+  if (!video || !video.dataset.src || wrap.dataset.loading) return;
+  wrap.dataset.loading = '1';
+
+  const url = video.dataset.src;
+
+  grabFrame(url, (dataUrl) => {
+    if (dataUrl) {
+      // 取帧成功：插入 img 封面
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+      wrap.insertBefore(img, wrap.querySelector('.cover-overlay'));
+    }
+    // 无论成功失败，都隐藏骨架
+    wrap.classList.add('loaded');
+  });
+}
+
+// ── 懒加载：首屏立即加载，其余大幅提前 ──
+const allWraps = Array.from(document.querySelectorAll('.video-wrap'));
+
+// 前12个（首屏）立即开始取帧
+allWraps.slice(0, 12).forEach(wrap => loadCover(wrap));
+
+// 其余用 IntersectionObserver，rootMargin 800px 大幅提前
 const lazyObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     if (!entry.isIntersecting) return;
-    const wrap = entry.target;
-    const video = wrap.querySelector('video');
-    if (video && video.dataset.src && !video.src) {
-      video.src = video.dataset.src;
-      video.preload = 'metadata';
-      video.load();
-
-      // metadata 就绪后 seek 到 20% 处，取更有内容的封面帧
-      video.addEventListener('loadedmetadata', () => {
-        video.currentTime = video.duration * 0.2;
-      }, { once: true });
-
-      // seek 完成后显示封面，隐藏骨架
-      video.addEventListener('seeked', () => {
-        wrap.classList.add('loaded');
-      }, { once: true });
-
-      // 超时兜底：5s 后无论如何隐藏骨架
-      setTimeout(() => wrap.classList.add('loaded'), 5000);
-    }
-    lazyObserver.unobserve(wrap);
+    loadCover(entry.target);
+    lazyObserver.unobserve(entry.target);
   });
-}, { rootMargin: '200px' });
+}, { rootMargin: '800px' });
 
-document.querySelectorAll('.video-wrap').forEach(wrap => lazyObserver.observe(wrap));
+allWraps.slice(12).forEach(wrap => lazyObserver.observe(wrap));
 
 // 筛选后重新观察新出现的卡片
 function reobserveLazy() {
   document.querySelectorAll('.video-wrap').forEach(wrap => {
-    const video = wrap.querySelector('video');
-    if (video && !video.src) lazyObserver.observe(wrap);
+    if (!wrap.dataset.loading) lazyObserver.observe(wrap);
   });
 }
 
